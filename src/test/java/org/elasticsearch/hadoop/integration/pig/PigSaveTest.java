@@ -13,32 +13,28 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.elasticsearch.hadoop.pig;
+package org.elasticsearch.hadoop.integration.pig;
 
 import java.io.ByteArrayInputStream;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.elasticsearch.hadoop.TestSettings;
+import org.elasticsearch.hadoop.integration.TestSettings;
 import org.elasticsearch.hadoop.rest.RestClient;
-import org.elasticsearch.hadoop.util.TestUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
  */
-public class PigStorageTest {
+public class PigSaveTest {
 
     static PigServer pig;
-
-    {
-        TestUtils.hackHadoopStagingOnWin();
-    }
 
     @BeforeClass
     public static void startup() throws Exception {
         // initialize Pig in local mode
-        pig = new PigServer("local");
+        pig = new PigServer(ExecType.LOCAL, TestSettings.TESTING_PROPS);
         pig.setBatchOn();
         RestClient client = new RestClient(new TestSettings());
         try {
@@ -65,7 +61,7 @@ public class PigStorageTest {
                 //"ILLUSTRATE A;" +
                 "B = FOREACH A GENERATE name, TOTUPLE(url, picture) AS links;" +
                 //"ILLUSTRATE B;" +
-                "STORE B INTO 'radio/artists' USING org.elasticsearch.hadoop.pig.ESStorage();";
+                "STORE B INTO 'pig/artists' USING org.elasticsearch.hadoop.pig.ESStorage();";
                 //"es_total = LOAD 'radio/artists/_count?q=me*' USING org.elasticsearch.hadoop.pig.ESStorage();" +
                 //"DUMP es_total;" +
                 //"bartists = FILTER B BY name MATCHES 'me.*';" +

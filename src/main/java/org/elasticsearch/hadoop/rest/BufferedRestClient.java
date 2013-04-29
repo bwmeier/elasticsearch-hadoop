@@ -19,8 +19,10 @@ import java.io.Closeable;
 import java.io.IOException;
 
 import org.apache.commons.lang.Validate;
+import org.apache.hadoop.io.Writable;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.elasticsearch.hadoop.cfg.Settings;
+import org.elasticsearch.hadoop.util.WritableUtils;
 
 /**
  * Rest client performing high-level operations using buffers to improve performance. Stateful in that once created, it is used to perform updates against the same index.
@@ -33,6 +35,8 @@ public class BufferedRestClient implements Closeable {
 
     private int bufferSize = 0;
     private int bufferEntries = 0;
+    private boolean requiresRefreshAfterBulk = false;
+    private boolean executedBulkWrite = false;
 
     private ObjectMapper mapper = new ObjectMapper();
 
@@ -45,6 +49,7 @@ public class BufferedRestClient implements Closeable {
 
         buffer = new byte[settings.getBatchSizeInBytes()];
         bufferEntriesThreshold = settings.getBatchSizeInEntries();
+        requiresRefreshAfterBulk = settings.getBatchRefreshAfterWrite();
     }
 
     /**
@@ -66,10 +71,12 @@ public class BufferedRestClient implements Closeable {
     public void addToIndex(Object object) throws IOException {
         Validate.notEmpty(index, "no index given");
 
+        Object d = (object instanceof Writable ? WritableUtils.fromWritable((Writable) object) : object);
+
         StringBuilder sb = new StringBuilder();
 
         sb.append("{\"index\":{}}\n");
-        sb.append(mapper.writeValueAsString(object));
+        sb.append(mapper.writeValueAsString(d));
         sb.append("\n");
 
         byte[] data = sb.toString().getBytes("UTF-8");
@@ -92,12 +99,17 @@ public class BufferedRestClient implements Closeable {
         client.bulk(index, buffer, bufferSize);
         bufferSize = 0;
         bufferEntries = 0;
+        executedBulkWrite = true;
     }
 
     @Override
     public void close() throws IOException {
         if (bufferSize > 0) {
             flushBatch();
+        }
+        if (requiresRefreshAfterBulk && executedBulkWrite) {
+            // refresh batch
+            client.refresh(index);
         }
         client.close();
     }

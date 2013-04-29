@@ -20,6 +20,7 @@ import java.util.Properties;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.Validate;
+import org.elasticsearch.hadoop.util.unit.Booleans;
 import org.elasticsearch.hadoop.util.unit.ByteSizeValue;
 import org.elasticsearch.hadoop.util.unit.TimeValue;
 
@@ -52,9 +53,13 @@ public abstract class Settings implements InternalConfigurationOptions {
         return Integer.valueOf(getProperty(ES_BATCH_SIZE_ENTRIES, ES_BATCH_SIZE_ENTRIES_DEFAULT));
     }
 
+    public boolean getBatchRefreshAfterWrite() {
+        return Booleans.parseBoolean(getProperty(ES_BATCH_WRITE_REFRESH, ES_BATCH_WRITE_REFRESH_DEFAULT));
+    }
+
     public String getTargetUri() {
         String address = getProperty(INTERNAL_ES_TARGET_URI);
-        return (address != null ? address: new StringBuilder("http://").append(getHost()).append(":").append(getPort()).append("/").toString());
+        return (!StringUtils.isBlank(address) ? address: new StringBuilder("http://").append(getHost()).append(":").append(getPort()).append("/").toString());
     }
 
     public Settings setHost(String host) {
@@ -74,7 +79,13 @@ public abstract class Settings implements InternalConfigurationOptions {
 
     public String getTargetResource() {
         String resource = getProperty(INTERNAL_ES_TARGET_RESOURCE);
-        return (!StringUtils.isBlank(targetResource) ? targetResource : !StringUtils.isBlank(resource) ? resource : getProperty(InternalConfigurationOptions.ES_RESOURCE));
+        return (!StringUtils.isBlank(targetResource) ? targetResource : !StringUtils.isBlank(resource) ? resource : getProperty(ES_RESOURCE));
+    }
+
+    public Settings clean() {
+        setProperty(INTERNAL_ES_TARGET_RESOURCE, "");
+        setProperty(INTERNAL_ES_TARGET_URI, "");
+        return this;
     }
 
     /**

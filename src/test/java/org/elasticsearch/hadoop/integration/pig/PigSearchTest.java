@@ -13,30 +13,27 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.elasticsearch.hadoop.pig;
+package org.elasticsearch.hadoop.integration.pig;
 
 import java.io.ByteArrayInputStream;
 
+import org.apache.pig.ExecType;
 import org.apache.pig.PigServer;
-import org.elasticsearch.hadoop.util.TestUtils;
+import org.elasticsearch.hadoop.integration.TestSettings;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
  */
-public class PigLoaderTest {
+public class PigSearchTest {
 
     static PigServer pig;
-
-    {
-        TestUtils.hackHadoopStagingOnWin();
-    }
 
     @BeforeClass
     public static void startup() throws Exception {
         // initialize Pig in local mode
-        pig = new PigServer("local");
+        pig = new PigServer(ExecType.LOCAL, TestSettings.TESTING_PROPS);
         pig.setBatchOn();
     }
 
@@ -52,9 +49,10 @@ public class PigLoaderTest {
     @Test
     public void testLoaderBasic() throws Exception {
         String script =
-                "A = LOAD 'radio/artists/_search?q=me*' USING org.elasticsearch.hadoop.pig.ESStorage();" +
-                "DESCRIBE A;" +
-                "DUMP A;";
+                "DEFINE ESStorage org.elasticsearch.hadoop.pig.ESStorage();" +
+                "A = LOAD 'pig/artists/_search?q=me*' USING ESStorage();";
+                //"DESCRIBE A;";
+                //"//DUMP A;";
         executeScript(script);
     }
 

@@ -13,31 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.elasticsearch.hadoop.util;
+package org.elasticsearch.hadoop.integration.rest;
 
-import java.io.IOException;
-
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.LocalFileSystem;
-import org.apache.hadoop.fs.Path;
+import org.elasticsearch.hadoop.cfg.Settings;
+import org.elasticsearch.hadoop.integration.TestSettings;
+import org.elasticsearch.hadoop.rest.RestClient;
+import org.junit.Test;
 
 /**
- * Work-around some of the hiccups around NTFS.
  */
-public class NTFSLocalFileSystem extends LocalFileSystem {
+public abstract class RestTest {
 
-    public NTFSLocalFileSystem() {
-        super();
-    }
+    private RestClient client = new RestClient(new TestSettings());
 
-    public NTFSLocalFileSystem(FileSystem rawLocalFileSystem) {
-        super(rawLocalFileSystem);
-    }
-
-    @Override
-    public boolean rename(Path src, Path dst) throws IOException {
-        super.rename(src, dst);
-        // always return true
-        return true;
+    @Test
+    public void testPagination() throws Exception {
+        client.query("twitter/_search?q=kimchy", 0, 2);
     }
 }

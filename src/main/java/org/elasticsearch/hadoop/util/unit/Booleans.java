@@ -13,24 +13,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.elasticsearch.hadoop;
+package org.elasticsearch.hadoop.util.unit;
 
-import java.util.Properties;
+public abstract class Booleans {
 
-import org.elasticsearch.hadoop.cfg.PropertiesSettings;
-
-/**
- * Tweaked settings for testing.
- */
-public class TestSettings extends PropertiesSettings {
-
-    private final static Properties TESTING_PROPS = new Properties();
-
-    static {
-        TESTING_PROPS.put(ES_BATCH_SIZE_BYTES, "8kb");
+    public static boolean parseBoolean(String value) {
+        return parseBoolean(value, false);
     }
 
-    public TestSettings() {
-        super(TESTING_PROPS);
+    public static boolean parseBoolean(String value, boolean defaultValue) {
+        if (value == null) {
+            return defaultValue;
+        }
+        String val = value.trim().toLowerCase();
+        return (val.equals("true") || val.equals("1") || val.equals("on") || val.equals("yes"));
     }
 }

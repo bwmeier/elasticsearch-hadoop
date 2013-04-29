@@ -17,7 +17,6 @@ package org.elasticsearch.hadoop.hive;
 
 import java.util.Map;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hive.metastore.HiveMetaHook;
 import org.apache.hadoop.hive.ql.metadata.DefaultStorageHandler;
@@ -25,7 +24,6 @@ import org.apache.hadoop.hive.ql.plan.TableDesc;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.OutputFormat;
-import org.elasticsearch.hadoop.cfg.Settings;
 import org.elasticsearch.hadoop.cfg.SettingsManager;
 import org.elasticsearch.hadoop.mr.ESInputFormat;
 import org.elasticsearch.hadoop.mr.ESOutputFormat;
@@ -74,7 +72,7 @@ public class ESStorageHandler extends DefaultStorageHandler {
 
     private void init(TableDesc tableDesc) {
         Configuration cfg = getConf();
-        SettingsManager.loadFrom(cfg).merge(tableDesc.getProperties()).setHost(host).setPort(port).save();
+        SettingsManager.loadFrom(cfg).merge(tableDesc.getProperties()).clean().setHost(host).setPort(port).save();
 
         // replace the default committer when using the old API
         cfg.set("mapred.output.committer.class", ESOutputFormat.ESOutputCommitter.class.getName());

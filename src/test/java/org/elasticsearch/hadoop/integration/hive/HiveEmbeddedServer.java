@@ -13,11 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.elasticsearch.hadoop.hive;
+package org.elasticsearch.hadoop.integration.hive;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.util.Enumeration;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 
 import org.apache.commons.io.FileUtils;
@@ -27,8 +31,8 @@ import org.apache.hadoop.hive.ql.session.SessionState;
 import org.apache.hadoop.hive.ql.session.SessionState.ResourceType;
 import org.apache.hadoop.hive.service.HiveInterface;
 import org.apache.hadoop.hive.service.HiveServer;
-import org.elasticsearch.hadoop.util.NTFSLocalFileSystem;
-import org.elasticsearch.hadoop.util.TestUtils;
+import org.elasticsearch.hadoop.unit.util.NTFSLocalFileSystem;
+import org.elasticsearch.hadoop.unit.util.TestUtils;
 
 /**
  * Utility starting a local/embedded Hive server for testing purposes.
@@ -41,17 +45,24 @@ class HiveEmbeddedServer {
     // As such, the current implementation tricks Hive into thinking it's not local but at the same time sets up Hadoop to run locally and stops Hive from setting any classpath.
 
     private HiveServer.HiveServerHandler server;
+    private Properties testSettings;
+    private HiveConf config;
+
+    public HiveEmbeddedServer(Properties settings) {
+        this.testSettings = settings;
+    }
 
     HiveInterface start() throws Exception {
 
         if (server == null) {
-            server = new HiveServer.HiveServerHandler(configure());
+            config = configure();
+            server = new HiveServer.HiveServerHandler(config);
         }
         return server;
     }
 
     // Hive adds automatically the Hive builtin jars - this thread-local cleans that up
-    private static class InterceptingThreadLocal extends ThreadLocal<SessionState> {
+    private static class InterceptingThreadLocal extends InheritableThreadLocal<SessionState> {
         @Override
         public void set(SessionState value) {
             value.delete_resource(ResourceType.JAR);
@@ -63,6 +74,9 @@ class HiveEmbeddedServer {
         FileUtils.deleteQuietly(new File("/tmp/hive"));
 
         HiveConf conf = new HiveConf();
+
+        refreshConfig(conf);
+
         // work-around for NTFS FS
         if (TestUtils.isWindows()) {
             conf.set("fs.file.impl", NTFSLocalFileSystem.class.getName());
@@ -93,6 +107,30 @@ class HiveEmbeddedServer {
         return conf;
     }
 
+    private void refreshConfig(HiveConf conf) {
+        //delete all "es" properties
+        Iterator<Map.Entry<String, String>> iter = conf.iterator();
+        while (iter.hasNext()) {
+            Entry<String, String> entry = iter.next();
+            if (entry.getKey().startsWith("es.")) {
+                iter.remove();
+            }
+        }
+
+        // copy test settings
+        Enumeration<?> names = testSettings.propertyNames();
+
+        while (names.hasMoreElements()) {
+            String key = names.nextElement().toString();
+            String value = testSettings.getProperty(key);
+            conf.set(key, value);
+        }
+    }
+
+    public void refreshConfig() {
+        refreshConfig(config);
+    }
+
     List<String> execute(String cmd) throws Exception {
         server.execute(cmd);
         return server.fetchAll();
@@ -103,6 +141,7 @@ class HiveEmbeddedServer {
             server.clean();
             server.shutdown();
             server = null;
+            config = null;
         }
     }
 }

@@ -13,42 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.elasticsearch.hadoop.cascading;
+package org.elasticsearch.hadoop.integration.cascading;
 
+import org.elasticsearch.hadoop.cascading.ESTap;
+import org.elasticsearch.hadoop.integration.TestSettings;
 import org.junit.Test;
 
 import cascading.flow.local.LocalFlowConnector;
-import cascading.operation.Identity;
-import cascading.pipe.Each;
 import cascading.pipe.Pipe;
-import cascading.scheme.local.TextDelimited;
 import cascading.scheme.local.TextLine;
 import cascading.tap.Tap;
-import cascading.tap.local.FileTap;
 import cascading.tap.local.StdOutTap;
-import cascading.tuple.Fields;
 
-public class CascadingLocalTest {
-
-    @Test
-    public void testWriteToES() throws Exception {
-        // local file-system source
-        Tap in = new FileTap(new TextDelimited(new Fields("id", "name", "url", "picture")), "src/test/resources/artists.dat");
-        Tap out = new ESTap("top/artists", new Fields("name", "url", "picture"));
-
-        Pipe pipe = new Pipe("copy");
-
-        // rename "id" -> "garbage"
-        pipe = new Each(pipe, new Identity(new Fields("garbage", "name", "url", "picture")));
-        new LocalFlowConnector().connect(in, out, pipe).complete();
-    }
+public class CascadingLocalSearchTest {
 
     @Test
     public void testReadFromES() throws Exception {
-        Tap in = new ESTap("top/artists/_search?q=me*");
+        Tap in = new ESTap("cascading-local/artists/_search?q=me*");
         Pipe copy = new Pipe("copy");
         // print out
         StdOutTap out = new StdOutTap(new TextLine());
-        new LocalFlowConnector().connect(in, out, copy).complete();
+        new LocalFlowConnector(TestSettings.TESTING_PROPS).connect(in, out, copy).complete();
     }
 }

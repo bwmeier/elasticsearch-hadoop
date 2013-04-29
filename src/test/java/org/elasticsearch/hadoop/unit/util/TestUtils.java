@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.elasticsearch.hadoop.util;
+package org.elasticsearch.hadoop.unit.util;
 
 import org.apache.commons.lang.reflect.FieldUtils;
 import org.apache.commons.logging.LogFactory;
@@ -32,7 +32,7 @@ public class TestUtils {
             JobSubmissionFiles.JOB_DIR_PERMISSION.fromShort((short) 0650);
             JobSubmissionFiles.JOB_FILE_PERMISSION.fromShort((short) 0650);
 
-            // handle jar permissions as well - temporarely disable for CDH 4 / YARN
+            // handle jar permissions as well - temporarily disable for CDH 4 / YARN
             try {
                 Class<?> tdcm = Class.forName("org.apache.hadoop.filecache.TrackerDistributedCacheManager");
                 FsPermission perm = (FsPermission) FieldUtils.readStaticField(tdcm, "PUBLIC_CACHE_OBJECT_PERM", true);

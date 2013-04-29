@@ -13,34 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.elasticsearch.hadoop.hive;
+package org.elasticsearch.hadoop.integration.hive;
 
-import org.elasticsearch.hadoop.util.TestUtils;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
-public class HiveStoreTest {
+import static org.elasticsearch.hadoop.integration.hive.HiveSuite.*;
 
-    private static HiveEmbeddedServer server;
-
-    {
-        TestUtils.hackHadoopStagingOnWin();
-    }
-
-    @BeforeClass
-    public static void start() throws Exception {
-        server = new HiveEmbeddedServer();
-        server.start();
-    }
-
-    @AfterClass
-    public static void stop() throws Exception {
-        server.stop();
-    }
+public class HiveSaveTest {
 
     @Test
     public void basicSave() throws Exception {
+
         // load the raw data as a native, managed table
         // and then insert its content into the external one
 
@@ -58,19 +41,19 @@ public class HiveStoreTest {
 
         // create external table
         String ddl =
-                "CREATE EXTERNAL TABLE artists ("
+                "CREATE EXTERNAL TABLE artistssave ("
                 + "id       BIGINT, "
                 + "name     STRING, "
                 + "links    STRUCT<url:STRING, picture:STRING>) "
                 + "STORED BY 'org.elasticsearch.hadoop.hive.ESStorageHandler' "
                 + "WITH SERDEPROPERTIES ('serder.foo' = 'serder.bar') "
-                + "TBLPROPERTIES('es.resource' = 'radio/artists') ";
+                + "TBLPROPERTIES('es.resource' = 'hive/artists') ";
 
         String selectTest = "SELECT NULL, s.name, struct(s.url, s.picture) FROM source s";
 
         // transfer data
         String insert =
-                "INSERT OVERWRITE TABLE artists "
+                "INSERT OVERWRITE TABLE artistssave "
                 + "SELECT NULL, s.name, named_struct('url', s.url, 'picture', s.picture) FROM source s";
 
         System.out.println(server.execute(ddl));
