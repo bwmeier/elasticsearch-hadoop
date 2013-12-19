@@ -88,6 +88,7 @@ public class ESStorage extends LoadFunc implements LoadPushDown, StoreFuncInterf
     private RecordReader<String, Map<?, ?>> reader;
     private RecordWriter<Object, Object> writer;
     private PigTuple pigTuple;
+    private String[] projection = null;
 
     public ESStorage() {
         this(new String[0]);
@@ -218,6 +219,8 @@ public class ESStorage extends LoadFunc implements LoadPushDown, StoreFuncInterf
         Settings settings = SettingsManager.loadFrom(cfg);
 
         if (settings.getScrollFields() != null) {
+            projection = settings.getScrollFields().split(",");
+            log.info("Settings setLocation - scroll fields preset: " + Arrays.toString(projection));
             return;
         }
 
@@ -270,6 +273,10 @@ public class ESStorage extends LoadFunc implements LoadPushDown, StoreFuncInterf
             }
             cfg.set(InternalConfigurationOptions.INTERNAL_ES_TARGET_FIELDS, fields);
         }
+        if (fields!=null) {
+            projection = fields.split(",");
+            log.info("Settings setLocation - scroll fields found: " + Arrays.toString(projection));
+        }
     }
 
 
@@ -303,10 +310,17 @@ public class ESStorage extends LoadFunc implements LoadPushDown, StoreFuncInterf
             Map dataMap = reader.getCurrentValue();
             Tuple tuple = TupleFactory.getInstance().newTuple(dataMap.size());
 
-            int i = 0;
-            Set<Entry<?,?>> entrySet = dataMap.entrySet();
-            for (Map.Entry entry : entrySet) {
-                tuple.set(i++, entry.getValue());
+            if (projection != null && projection.length > 0) {
+                for (int i = 0; i < projection.length; i++) {
+                    tuple.set(i, dataMap.get(projection[i]));
+                }
+            }
+            else {
+                int i = 0;
+                Set<Entry<?,?>> entrySet = dataMap.entrySet();
+                for (Map.Entry entry : entrySet) {
+                    tuple.set(i++, entry.getValue());
+                }
             }
 
             if (trace) {
@@ -332,7 +346,10 @@ public class ESStorage extends LoadFunc implements LoadPushDown, StoreFuncInterf
         String fields = PigUtils.asProjection(requiredFieldList, properties);
         getUDFProperties().setProperty(InternalConfigurationOptions.INTERNAL_ES_TARGET_FIELDS, fields);
         if (log.isTraceEnabled()) {
-            log.trace(String.format("Given push projection; saving field projection [%s]", fields));
+            for (RequiredField field: requiredFieldList.getFields()) {
+              log.trace(String.format("Required: %s: %s %s %s", field.getIndex(), field.getAlias(), field.getType(), field.getSubFields()));
+            }
+            log.trace(String.format("Given push projection [%s]; saving field projection [%s]", requiredFieldList, fields));
         }
         return new RequiredFieldResponse(true);
     }
