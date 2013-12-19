@@ -118,13 +118,16 @@ class PigUtils {
         List<String> fields = new ArrayList<String>();
         FieldAlias alias = alias(new PropertiesSettings(props));
         for (RequiredField field : list.getFields()) {
-            addField(field, fields, alias, "");
+            addField(field, fields, alias, alias.toES(field.getAlias()));
         }
 
         return StringUtils.concatenate(fields.toArray(new String[fields.size()]), ",");
     }
 
     private static void addField(RequiredField field, List<String> fields, FieldAlias fa, String currentNode) {
+            fields.add(currentNode);
+            return;
+/*
         if (field.getSubFields() != null && !field.getSubFields().isEmpty()) {
             for (RequiredField subField : field.getSubFields()) {
                 addField(subField, fields, fa, currentNode + "." + fa.toES(subField.getAlias()));
@@ -132,7 +135,8 @@ class PigUtils {
         }
 
         else {
-            fields.add(fa.toES(field.getAlias()));
+            fields.add(currentNode);
         }
+*/
     }
 }

@@ -93,6 +93,7 @@ public class EsStorage extends LoadFunc implements LoadMetadata, LoadPushDown, S
     private RecordReader<String, Map<?, ?>> reader;
     private RecordWriter<Object, Object> writer;
     private PigTuple pigTuple;
+    private String[] projection = null;
 
     private List<String> aliasesTupleNames;
     private boolean IS_ES_10;
@@ -230,6 +231,8 @@ public class EsStorage extends LoadFunc implements LoadMetadata, LoadPushDown, S
         IS_ES_10 = SettingsUtils.isEs10(settings);
 
         if (settings.getScrollFields() != null) {
+            projection = settings.getScrollFields().split(",");
+            log.info("Settings setLocation - scroll fields preset: " + Arrays.toString(projection));
             return;
         }
 
@@ -282,6 +285,10 @@ public class EsStorage extends LoadFunc implements LoadMetadata, LoadPushDown, S
             }
             cfg.set(InternalConfigurationOptions.INTERNAL_ES_TARGET_FIELDS, fields);
             getUDFProperties().setProperty(InternalConfigurationOptions.INTERNAL_ES_TARGET_FIELDS, fields);
+        }
+        if (fields!=null) {
+            projection = fields.split(",");
+            log.info("Settings setLocation - scroll fields found: " + Arrays.toString(projection));
         }
     }
 
@@ -368,7 +375,10 @@ public class EsStorage extends LoadFunc implements LoadMetadata, LoadPushDown, S
         String fields = PigUtils.asProjection(requiredFieldList, properties);
         getUDFProperties().setProperty(InternalConfigurationOptions.INTERNAL_ES_TARGET_FIELDS, fields);
         if (log.isTraceEnabled()) {
-            log.trace(String.format("Given push projection; saving field projection [%s]", fields));
+            for (RequiredField field: requiredFieldList.getFields()) {
+              log.trace(String.format("Required: %s: %s %s %s", field.getIndex(), field.getAlias(), field.getType(), field.getSubFields()));
+            }
+            log.trace(String.format("Given push projection [%s]; saving field projection [%s]", requiredFieldList, fields));
         }
         return new RequiredFieldResponse(true);
     }
