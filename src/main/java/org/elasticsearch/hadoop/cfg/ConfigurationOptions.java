@@ -1,17 +1,20 @@
 /*
- * Copyright 2013 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.elasticsearch.hadoop.cfg;
 
@@ -83,10 +86,21 @@ public interface ConfigurationOptions {
     /** Serialization settings */
 
     /** Value writer - setup automatically; can be overridden for custom types */
-    String ES_SERIALIZATION_WRITER_CLASS = "es.ser.writer.class";
+    String ES_SERIALIZATION_WRITER_VALUE_CLASS = "es.ser.writer.value.class";
+
+    /** JSON/Bytes writer - setup automatically; can be overridden for custom types */
+    String ES_SERIALIZATION_WRITER_BYTES_CLASS = "es.ser.writer.bytes.class";
 
     /** Value reader - setup automatically; can be overridden for custom types */
-    String ES_SERIALIZATION_READER_CLASS = "es.ser.reader.class";
+    String ES_SERIALIZATION_READER_VALUE_CLASS = "es.ser.reader.value.class";
+
+    /** Input options **/
+    String ES_INPUT_JSON = "es.input.json";
+    String ES_INPUT_JSON_DEFAULT = "no";
+
+    /** Field options **/
+    String ES_FIELD_READ_EMPTY_AS_NULL = "es.field.read.empty.as.null";
+    String ES_FIELD_READ_EMPTY_AS_NULL_DEFAULT = "yes";
 
     /** Index settings */
     String ES_INDEX_AUTO_CREATE = "es.index.auto.create";

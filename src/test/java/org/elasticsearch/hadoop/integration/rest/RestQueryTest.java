@@ -1,17 +1,20 @@
 /*
- * Copyright 2013 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.elasticsearch.hadoop.integration.rest;
 
@@ -27,9 +30,9 @@ import org.elasticsearch.hadoop.rest.ScrollQuery;
 import org.elasticsearch.hadoop.rest.dto.Node;
 import org.elasticsearch.hadoop.rest.dto.Shard;
 import org.elasticsearch.hadoop.rest.dto.mapping.Field;
-import org.elasticsearch.hadoop.serialization.JdkValueReader;
-import org.elasticsearch.hadoop.serialization.JdkValueWriter;
 import org.elasticsearch.hadoop.serialization.ScrollReader;
+import org.elasticsearch.hadoop.serialization.builder.JdkValueReader;
+import org.elasticsearch.hadoop.serialization.builder.JdkValueWriter;
 import org.elasticsearch.hadoop.util.TestSettings;
 import org.junit.After;
 import org.junit.Before;
@@ -48,8 +51,8 @@ public class RestQueryTest {
     public void start() throws IOException {
         settings = new TestSettings("rest/savebulk");
         //testSettings.setPort(9200)
-        settings.setProperty(ConfigurationOptions.ES_SERIALIZATION_WRITER_CLASS, JdkValueWriter.class.getName());
-        settings.setProperty(ConfigurationOptions.ES_SERIALIZATION_WRITER_CLASS, JdkValueWriter.class.getName());
+        settings.setProperty(ConfigurationOptions.ES_SERIALIZATION_WRITER_VALUE_CLASS, JdkValueWriter.class.getName());
+        settings.setProperty(ConfigurationOptions.ES_SERIALIZATION_WRITER_VALUE_CLASS, JdkValueWriter.class.getName());
         client = new RestRepository(settings);
         client.waitForYellow();
     }

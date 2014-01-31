@@ -1,17 +1,20 @@
 /*
- * Copyright 2013 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.elasticsearch.hadoop.rest;
 
@@ -78,7 +81,8 @@ public class RestClient implements Closeable {
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public List<String> discoverNodes() throws IOException {
-        Map<String, Map> nodes = (Map<String, Map>) get("_cluster/nodes", "nodes");
+        String endpoint = "_nodes/transport";
+        Map<String, Map> nodes = (Map<String, Map>) get(endpoint, "nodes");
 
         List<String> hosts = new ArrayList<String>(nodes.size());
 
@@ -113,12 +117,12 @@ public class RestClient implements Closeable {
 
         do {
             Response response = execute(PUT, resource.bulk(), data);
-            httpStatus = (removeSuccesful(response.body(), data) ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.OK);
+            httpStatus = (retryFailedEntries(response.body(), data) ? HttpStatus.SERVICE_UNAVAILABLE : HttpStatus.OK);
         } while (data.length() > 0 && retry.retry(httpStatus));
     }
 
     @SuppressWarnings("rawtypes")
-    private boolean removeSuccesful(InputStream content, TrackingBytesArray data) throws IOException {
+    private boolean retryFailedEntries(InputStream content, TrackingBytesArray data) throws IOException {
         ObjectReader r = mapper.reader(Map.class);
         JsonParser parser = mapper.getJsonFactory().createJsonParser(content);
         if (ParsingUtils.seek("items", new JacksonJsonParser(parser)) == null) {
@@ -130,14 +134,15 @@ public class RestClient implements Closeable {
             Map map = iterator.next();
             Map values = (Map) map.values().iterator().next();
             String error = (String) values.get("error");
-
             if (error != null) {
-                // can retry
-                if (error.contains("EsRejectedExecutionException")) {
+                // status - introduced in 1.0.RC1
+                Integer status = (Integer) values.get("status");
+                if (status != null && HttpStatus.canRetry(status) || error.contains("EsRejectedExecutionException")) {
                     entryToDeletePosition++;
                 }
                 else {
-                    throw new IllegalStateException(String.format("Found unrecoverable error [%s]; Bailing out..", error));
+                    String message = (status != null ? String.format("%s(%s) - %s", HttpStatus.getText(status), status, error) : error);
+                    throw new IllegalStateException(String.format("Found unrecoverable error [%s]; Bailing out..", message));
                 }
             }
             else {
@@ -176,7 +181,7 @@ public class RestClient implements Closeable {
     }
 
     public Map<String, Node> getNodes() throws IOException {
-        Map<String, Map<String, Object>> nodesData = get("_nodes", "nodes");
+        Map<String, Map<String, Object>> nodesData = get("_nodes/http", "nodes");
         Map<String, Node> nodes = new LinkedHashMap<String, Node>();
 
         for (Entry<String, Map<String, Object>> entry : nodesData.entrySet()) {
@@ -257,6 +262,11 @@ public class RestClient implements Closeable {
         touch(index);
 
         execute(PUT, mapping, new BytesArray(bytes));
+    }
+
+    public String esVersion() throws IOException {
+        Map<String, String> version = get("", "version");
+        return version.get("number");
     }
 
     public boolean health(String index, HEALTH health, TimeValue timeout) throws IOException {

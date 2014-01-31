@@ -2,59 +2,66 @@ description = 'Elasticsearch Hadoop'
 
 buildscript {
     repositories {
-        maven { url 'http://repo.springsource.org/plugins-release' }
+		mavenCentral()
         maven { url 'http://dl.bintray.com/content/aalmiray/asciidoctor' }
         maven { url 'http://jcenter.bintray.com' }
+        maven { url 'http://repo.springsource.org/plugins-release' }
+
     }
     dependencies {
-        classpath('org.springframework.build.gradle:propdeps-plugin:0.0.4')
 		classpath('org.asciidoctor:asciidoctor-gradle-plugin:0.5.0')
-    }
+        classpath('org.springframework.build.gradle:propdeps-plugin:0.0.5')
+		classpath('nl.javadude.gradle.plugins:license-gradle-plugin:0.5.0')
+	}
 }
 
-repositories {
-  mavenCentral()
-  maven { url "http://oss.sonatype.org/content/groups/public/" }
-  // JDO ec2 missing from Maven Central
-  maven { url "http://www.datanucleus.org/downloads/maven2" }
-  maven { url "http://conjars.org/repo" }
+allprojects {
+	repositories {
+	  mavenCentral()
+	  maven { url "http://oss.sonatype.org/content/groups/public/" }
+	}
 }
 
-apply plugin: "java"
-apply plugin: 'eclipse'
-apply plugin: 'idea'
-apply from: "$rootDir/maven.gradle"
-apply plugin: 'propdeps'
-apply plugin: 'propdeps-idea'
-apply plugin: 'propdeps-eclipse'
+allprojects {
+	apply plugin: "java"
+	apply plugin: 'eclipse'
+	apply plugin: 'idea'
+	apply plugin: 'propdeps'
+	apply plugin: 'propdeps-idea'
+	apply plugin: 'propdeps-eclipse'
+	// report plugins
+	apply plugin: 'findbugs'
+	apply plugin: 'pmd'
+	apply plugin: 'jacoco'
+	apply from: "$rootDir/maven.gradle"
+	apply plugin: 'license'
+}
+
 apply plugin: 'asciidoctor'
-// report plugins
-apply plugin: 'findbugs'
-apply plugin: 'pmd'
-apply plugin: 'jacoco'
 
-def List hadoop = []
-def hadoopDistro = project.hasProperty("distro") ? project.getProperty("distro") : "hadoopStable"
+ext.hadoopClient = []
+ext.hadoopDistro = project.hasProperty("distro") ? project.getProperty("distro") : "hadoopStable"
 
 // Hadoop aliases
 def hadoopStableVersion = hadoop12Version
 def hadoopYarnVersion = hadoop2Version
 def hadoopVersion = hadoopStableVersion 
+def hadoopMsg;
 
 switch (hadoopDistro) {
 
   // Hadoop YARN/2.0.x
   case "hadoopYarn":
     hadoopVersion = hadoopYarnVersion
-    println "Using Apache Hadoop YARN [$hadoopVersion]"
-    hadoop = ["org.apache.hadoop:hadoop-client:$hadoopVersion"]
+    hadoopMsg = "Using Apache Hadoop YARN [$hadoopVersion]"
+    hadoopClient = ["org.apache.hadoop:hadoop-client:$hadoopVersion"]
 
     break;
   // Hadoop 1.2.x
   case "hadoop12":
     hadoopVersion = hadoop12Version
-    println "Using Apache Hadoop 1.2.x [$hadoopVersion]"
-    hadoop = ["org.apache.hadoop:hadoop-streaming:$hadoopVersion",
+    hadoopMsg =  "Using Apache Hadoop 1.2.x [$hadoopVersion]"
+    hadoopClient = ["org.apache.hadoop:hadoop-streaming:$hadoopVersion",
               "org.apache.hadoop:hadoop-tools:$hadoopVersion"]
 
     break;
@@ -62,8 +69,8 @@ switch (hadoopDistro) {
   // Hadoop 1.1.x
   case "hadoop11":
     hadoopVersion = hadoop11Version
-    println "Using Apache Hadoop 1.1.x [$hadoopVersion]"
-    hadoop = ["org.apache.hadoop:hadoop-streaming:$hadoopVersion",
+    hadoopMsg = "Using Apache Hadoop 1.1.x [$hadoopVersion]"
+    hadoopClient = ["org.apache.hadoop:hadoop-streaming:$hadoopVersion",
               "org.apache.hadoop:hadoop-tools:$hadoopVersion"]
 
     break;
@@ -71,59 +78,71 @@ switch (hadoopDistro) {
   // Hadoop 1.0.x
   case "hadoop10":
     hadoopVersion = hadoop10Version
-    println "Using Apache Hadoop 1.0.x [$hadoopVersion]"
-    hadoop = ["org.apache.hadoop:hadoop-streaming:$hadoopVersion",
+    hadoopMsg = "Using Apache Hadoop 1.0.x [$hadoopVersion]"
+    hadoopClient = ["org.apache.hadoop:hadoop-streaming:$hadoopVersion",
               "org.apache.hadoop:hadoop-tools:$hadoopVersion"]
 
     break;
 
   default:
-    println "Using Apache Hadoop Stable [$hadoopVersion]"
+    hadoopMsg = "Using Apache Hadoop Stable [$hadoopVersion]"
     hadoopVersion = hadoopStableVersion
-    hadoop = ["org.apache.hadoop:hadoop-streaming:$hadoopVersion",
+    hadoopClient = ["org.apache.hadoop:hadoop-streaming:$hadoopVersion",
               "org.apache.hadoop:hadoop-tools:$hadoopVersion"] 
 }
-
-dependencies {
-	provided(hadoop)
-	
-	provided("org.codehaus.jackson:jackson-mapper-asl:$jacksonVersion")
-    testRuntime("log4j:log4j:$log4jVersion")
-
-    // Pig
-    optional("org.apache.pig:pig:$pigVersion")
-
-	ext.hiveGroup = "org.apache.hive"
-    // Hive
-    optional("$hiveGroup:hive-service:$hiveVersion")
-	
-	// Cascading
-	optional("cascading:cascading-hadoop:$cascadingVersion")
-	optional("cascading:cascading-local:$cascadingVersion")
-    
-    // needed by the Hive Server tests - removed since Hive 0.11
-    // testRuntime "$hiveGroup:hive-builtins:$hiveVersion"
-
-    // Testing
-    testCompile "junit:junit:$junitVersion"
-	testCompile "org.hamcrest:hamcrest-all:$hamcrestVersion"
-    testCompile "org.elasticsearch:elasticsearch:$esVersion"
-	
-	if (hadoopVersion.contains("1.0.")) {
-		// missing dependency in Hadoop 1.0.3/1.0.4
-		testCompile "commons-io:commons-io:2.1"
+allprojects {
+	dependencies {
+		
+		testCompile "junit:junit:$junitVersion"
+		testCompile "org.hamcrest:hamcrest-all:$hamcrestVersion"
+		testCompile "org.elasticsearch:elasticsearch:$esVersion"
+	    testRuntime "log4j:log4j:$log4jVersion"
 	}
+
+if (rootProject == project) {
+	println hadoopMsg
+
+	repositories {
+	  // JDO ec2 missing from Maven Central
+	  maven { url "http://www.datanucleus.org/downloads/maven2" }
+	  maven { url "http://conjars.org/repo" }
+	}
+
+	dependencies {
+		provided(hadoopClient)
+		provided("org.codehaus.jackson:jackson-mapper-asl:$jacksonVersion")
+
+		// Pig
+		optional("org.apache.pig:pig:$pigVersion")
+
+		ext.hiveGroup = "org.apache.hive"
+		// Hive
+		optional("$hiveGroup:hive-service:$hiveVersion")
+		
+		// Cascading
+		optional("cascading:cascading-hadoop:$cascadingVersion")
+		optional("cascading:cascading-local:$cascadingVersion")
 	
-	// Required by Pig
-	testRuntime "com.google.guava:guava:11.0"
-	testRuntime "dk.brics.automaton:automaton:1.11-8"
-	optional("joda-time:joda-time:$jodaVersion")
-	
-	// Required by Hive + Pig
-	// testRuntime "org.antlr:antlr-runtime:$antlrVersion"
-	
-	// Required by Hive
-	testRuntime "org.apache.hive:hive-jdbc:$hiveVersion"
+		// Testing
+		if (hadoopVersion.contains("1.0.")) {
+			// missing dependency in Hadoop 1.0.3/1.0.4
+			testCompile "commons-io:commons-io:2.1"
+		}
+		
+		// testRuntime "$hiveGroup:hive-builtins:$hiveVersion"
+
+		// Required by Pig
+		testRuntime "com.google.guava:guava:11.0"
+		testRuntime "dk.brics.automaton:automaton:1.11-8"
+		optional("joda-time:joda-time:$jodaVersion")
+		
+		// Required by Hive + Pig
+		// testRuntime "org.antlr:antlr-runtime:$antlrVersion"
+		
+		// Required by Hive
+		testRuntime "org.apache.hive:hive-jdbc:$hiveVersion"
+	}
+}
 }
 
 configurations.all {
@@ -132,15 +151,53 @@ configurations.all {
   }
 }
 
-compileJava {
-    sourceCompatibility = 1.6
-    targetCompatibility = 1.6 
+configure(allprojects) { project ->
+	
+	compileJava {
+		sourceCompatibility = 1.6
+		targetCompatibility = 1.6 
 
-    options.compilerArgs << "-Xlint:unchecked"
-    //options.compilerArgs << "-Xlint:deprecation"
-	options.compilerArgs << "-Xlint:options"
+		options.compilerArgs << "-Xlint:unchecked"
+		//options.compilerArgs << "-Xlint:deprecation"
+		options.compilerArgs << "-Xlint:options"
+	}
+	
+	compileTestJava {
+			sourceCompatibility = 1.6
+			targetCompatibility = 1.6
+	}
+	
+	test {
+		jacoco {
+			def jacocoEnabled = project.hasProperty("jacocoCoverage")
+			enabled = jacocoEnabled
+		   
+			if (jacocoEnabled)
+				println "Enabling Jacoco Coverage"
+		}
+	}
+	
+	task sourcesJar(type: Jar, dependsOn:classes) {
+		classifier = 'sources'
+		from sourceSets.main.allJava
+	}
+
+	artifacts {
+		archives sourcesJar
+	}
 }
 
+// enable javadoc only for root project
+task javadocJar(type: Jar) {
+	classifier = 'javadoc'
+	from javadoc
+}
+	
+artifacts {
+	archives javadocJar
+}
+
+	
 ext.skipCascading = true
 ext.skipMR = true
 ext.skipHive = true
@@ -232,18 +289,10 @@ test {
         if (!msg.isEmpty())
             println "Skipping [$msg] Tests";
 	}
-	
-	jacoco {
-        def jacocoEnabled = project.hasProperty("jacocoCoverage")
-		enabled = jacocoEnabled
-       
-        if (jacocoEnabled)
-            println "Enabling Jacoco Coverage"
-    }
 }
 
 javadoc {
-	ext.srcDir = file("${projectDir}/docs/src/api")
+	ext.srcDir = file("${rootProject}/docs/src/api")
 	
 
 	configure(options) {
@@ -265,11 +314,10 @@ javadoc {
 		links = [
 			"http://download.oracle.com/javase/6/docs/api",
 			"http://commons.apache.org/proper/commons-logging/apidocs/",
-			"http://hadoop.apache.org/common/docs/r1.1.2/api/",
+			"http://hadoop.apache.org/common/docs/stable1/api",
 			//"http://hbase.apache.org/apidocs/",
 			"http://pig.apache.org/docs/r0.12.0/api/",
 			"http://hive.apache.org/docs/r0.12.0/api/",
-			"https://builds.apache.org/job/Thrift/javadoc/",
 			"http://docs.cascading.org/cascading/2.1/javadoc/"
 		]
 
@@ -283,17 +331,6 @@ javadoc {
 	title = "${rootProject.description} ${version} API"
 }
 
-task sourcesJar(type: Jar, dependsOn:classes) {
-    classifier = 'sources'
-    from sourceSets.main.allJava
-}
-
-task javadocJar(type: Jar) {
-    classifier = 'javadoc'
-    from javadoc
-}
-
-
 // jar used for testing Hadoop remotely (es-hadoop + tests)
 task hadoopTestingJar(type: Jar) {
 	classifier = 'testing'
@@ -301,36 +338,53 @@ task hadoopTestingJar(type: Jar) {
 	from sourceSets.main.output
 }
 
+configure(allprojects) { project ->
+
+	licenseMain {
+		header rootProject.file('src/test/resources/HEADER')
+		strictCheck false
+		ignoreFailures true
+	}
+	licenseTest.enabled = false
+	// exclude properties file
+	tasks.withType(nl.javadude.gradle.plugins.license.License).each { licenseTask ->
+		licenseTask.exclude '**/*.properties'
+		licenseTask.exclude '**/package-info.java'
+	}
+}
+
 jar {
-    manifest.attributes["Created-By"] = "${System.getProperty("java.version")} (${System.getProperty("java.specification.vendor")})"
-    manifest.attributes['Implementation-Title'] = 'elasticsearch-hadoop'
-    manifest.attributes['Implementation-Version'] = project.version
-    manifest.attributes['Implementation-URL'] = "http://github.com/elasticsearch/elasticsearch-hadoop"
-    manifest.attributes['Implementation-Vendor'] = "Elasticsearch"
-    manifest.attributes['Implementation-Vendor-Id'] = "org.elasticsearch.hadoop"
-    
-    def build = System.env['ESHDP.BUILD']
-    if (build != null)
-        manifest.attributes['Build'] = build
-    
-    String rev = "unknown"
-    
-    // parse the git files to find out the revision
-    File gitHead = file('.git/HEAD')
-    if (gitHead.exists()) {
-        gitHead = file('.git/' + gitHead.text.trim().replace('ref: ',''))
-        if (gitHead.exists()) { rev = gitHead.text }
-    }
-
-    from("$rootDir/docs/src/info") {
-        include "license.txt"
-        include "notice.txt"
-        into "META-INF"
-        expand(copyright: new Date().format('yyyy'), version: project.version)
-    }
-
-    manifest.attributes['Repository-Revision'] = rev
+	manifest.attributes["Created-By"] = "${System.getProperty("java.version")} (${System.getProperty("java.specification.vendor")})"
+	manifest.attributes['Implementation-Title'] = 'elasticsearch-hadoop'
+	manifest.attributes['Implementation-Version'] = project.version
+	manifest.attributes['Implementation-URL'] = "http://github.com/elasticsearch/elasticsearch-hadoop"
+	manifest.attributes['Implementation-Vendor'] = "Elasticsearch"
+	manifest.attributes['Implementation-Vendor-Id'] = "org.elasticsearch.hadoop"
 	
+	def build = System.env['ESHDP.BUILD']
+	if (build != null)
+		manifest.attributes['Build'] = build
+	
+	String rev = "unknown"
+	
+	// parse the git files to find out the revision
+	File gitHead = file('.git/HEAD')
+	if (gitHead.exists()) {
+		gitHead = file('.git/' + gitHead.text.trim().replace('ref: ',''))
+		if (gitHead.exists()) { rev = gitHead.text }
+	}
+
+	from("$rootDir/docs/src/info") {
+		include "license.txt"
+		include "notice.txt"
+		into "META-INF"
+		expand(copyright: new Date().format('yyyy'), version: project.version)
+	}
+
+	manifest.attributes['Repository-Revision'] = rev
+}
+
+configure(jar) {
 	if (hadoopDistro == "hadoopYarn") {
 		classifier = 'yarn'
 	}
@@ -350,84 +404,96 @@ asciidoctor {
 			toc2: '',
 			sectanchors: '',
 			//stylesheet: 'github.css',
-			copycss: ''
+			copycss: '',
+			revnumber : project.version
 			//'linkcss!': ''
         ]
     ]
 }
 
 // reporting
-
-findbugsMain {
-  ignoreFailures = true
-  effort = "max"
-  reportLevel = "low"
-  
-  reports {
-    xml.enabled = true
-    html.enabled = false
-  }
-}
-
-pmdMain {
-  ignoreFailures = true
-  reports {
-    xml.enabled = true
-    html.enabled = true
-  }
-}
-
-jacoco {
-	toolVersion = "0.6.3.201306030806"
-}
-
-jacocoTestReport {
-	reports {
-		xml.enabled true
-		csv.enabled true
-		html.enabled true
+configure(allprojects) { project ->
+	findbugsMain {
+	  ignoreFailures = true
+	  effort = "max"
+	  reportLevel = "low"
+	  
+	  reports {
+		xml.enabled = true
+		html.enabled = false
+	  }
 	}
-}
 
-findbugsTest.enabled = false
-pmdTest.enabled = false   
+	pmdMain {
+	  ignoreFailures = true
+	  reports {
+		xml.enabled = true
+		html.enabled = true
+	  }
+	}
+
+	jacoco {
+		toolVersion = "0.6.3.201306030806"
+	}
+
+	jacocoTestReport {
+		reports {
+			xml.enabled true
+			csv.enabled true
+			html.enabled true
+		}
+	}
+
+	findbugsTest.enabled = false
+	pmdTest.enabled = false   
+}
 
 // packaging
-
 task distZip(type: Zip, dependsOn: [jar, sourcesJar, javadocJar]) {
     group = "Distribution"
-    //classifier = "dist"
     description = "Builds -${classifier} archive, containing all jars and docs, suitable for download page."
-
-    ext.baseDir = "${project.name}-${project.version}";
 
     from(".") {
         include "README.md"
         include "LICENSE.txt"
         include "NOTICE.txt"
-        into "${baseDir}"
+        into archiveName
         //expand(yyyy: new Date().format("yyyy"), version: project.version)
     }
 
     from("build/asciidoc") {
-        into "${baseDir}/docs"
+        into "${archiveName}/docs"
     }
 
-    into ("${baseDir}/dist") {
+	subprojects.each { subproject ->
+		into ("${archiveName}/build/libs") {
+			from subproject.jar
+			if (subproject.tasks.findByPath("sourcesJar")) {
+					from subproject.sourcesJar
+			}
+			if (subproject.tasks.findByPath("javadocJar")) {
+					from subproject.javadocJar
+			}
+		}
+	}
+
+    into ("${archiveName}/dist") {
         from "build/libs"
 		exclude "*-testing.jar"
     }
 }
 
 artifacts {
-    archives sourcesJar
-    archives javadocJar
-
+	
 	// include YARN is available
 	ext.yarn = file("$libsDir/$name-$version-yarn.jar")
 	if (yarn.exists()) {
 		archives yarn
 	}
+	
+	//files(subprojects.configurations.archives.artifacts.file).each { File file ->
+	//   archives file
+	//}
 }
 
 task wrapper(type: Wrapper) {

@@ -1,17 +1,20 @@
 /*
- * Copyright 2013 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.elasticsearch.hadoop.integration.mr;
 
@@ -26,7 +29,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.elasticsearch.hadoop.cfg.ConfigurationOptions;
 import org.elasticsearch.hadoop.integration.HdpBootstrap;
 import org.elasticsearch.hadoop.integration.QueryTestParams;
-import org.elasticsearch.hadoop.mr.ESInputFormat;
+import org.elasticsearch.hadoop.mr.EsInputFormat;
 import org.elasticsearch.hadoop.mr.HadoopCfgUtils;
 import org.elasticsearch.hadoop.mr.LinkedMapWritable;
 import org.junit.Test;
@@ -39,19 +42,21 @@ public class MROldApiSearchTest {
 
     @Parameters
     public static Collection<Object[]> queries() {
-        return QueryTestParams.params();
+        return QueryTestParams.jsonParams();
     }
 
-    private String query;
+    private final String query;
+    private final String indexPrefix;
 
-    public MROldApiSearchTest(String query) {
+    public MROldApiSearchTest(String indexPrefix, String query) {
         this.query = query;
+        this.indexPrefix = indexPrefix;
     }
 
     @Test
     public void testBasicSearch() throws Exception {
         JobConf conf = createJobConf();
-        conf.set(ConfigurationOptions.ES_RESOURCE, "mroldapi/save");
+        conf.set(ConfigurationOptions.ES_RESOURCE, indexPrefix + "mroldapi/save");
 
         JobClient.runJob(conf);
     }
@@ -59,7 +64,7 @@ public class MROldApiSearchTest {
     @Test
     public void testSearchWithId() throws Exception {
         JobConf conf = createJobConf();
-        conf.set(ConfigurationOptions.ES_RESOURCE, "mroldapi/savewithid");
+        conf.set(ConfigurationOptions.ES_RESOURCE, indexPrefix + "mroldapi/savewithid");
 
         JobClient.runJob(conf);
     }
@@ -76,7 +81,7 @@ public class MROldApiSearchTest {
     @Test
     public void testSearchCreated() throws Exception {
         JobConf conf = createJobConf();
-        conf.set(ConfigurationOptions.ES_RESOURCE, "mroldapi/createwithid");
+        conf.set(ConfigurationOptions.ES_RESOURCE, indexPrefix + "mroldapi/createwithid");
 
         JobClient.runJob(conf);
     }
@@ -84,16 +89,16 @@ public class MROldApiSearchTest {
     @Test
     public void testSearchUpdated() throws Exception {
         JobConf conf = createJobConf();
-        conf.set(ConfigurationOptions.ES_RESOURCE, "mroldapi/update");
+        conf.set(ConfigurationOptions.ES_RESOURCE, indexPrefix + "mroldapi/update");
 
         JobClient.runJob(conf);
     }
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = IllegalArgumentException.class)
     public void testSearchUpdatedWithoutUpsertMeaningNonExistingIndex() throws Exception {
         JobConf conf = createJobConf();
         conf.setBoolean(ConfigurationOptions.ES_INDEX_READ_MISSING_AS_EMPTY, false);
-        conf.set(ConfigurationOptions.ES_RESOURCE, "mroldapi/updatewoupsert");
+        conf.set(ConfigurationOptions.ES_RESOURCE, indexPrefix + "mroldapi/updatewoupsert");
 
         JobClient.runJob(conf);
     }
@@ -101,7 +106,7 @@ public class MROldApiSearchTest {
     @Test
     public void testParentChild() throws Exception {
         JobConf conf = createJobConf();
-        conf.set(ConfigurationOptions.ES_RESOURCE, "mroldapi/child");
+        conf.set(ConfigurationOptions.ES_RESOURCE, indexPrefix + "mroldapi/child");
         conf.set(ConfigurationOptions.ES_INDEX_AUTO_CREATE, "no");
         conf.set(ConfigurationOptions.ES_MAPPING_PARENT, "number");
 
@@ -112,7 +117,7 @@ public class MROldApiSearchTest {
     //@Test
     public void testNested() throws Exception {
         JobConf conf = createJobConf();
-        conf.set(ConfigurationOptions.ES_RESOURCE, "mroldapi/nested");
+        conf.set(ConfigurationOptions.ES_RESOURCE, indexPrefix + "mroldapi/nested");
         conf.set(ConfigurationOptions.ES_INDEX_AUTO_CREATE, "no");
 
         //conf.set(Stream.class.getName(), "OUT");
@@ -122,7 +127,7 @@ public class MROldApiSearchTest {
     private JobConf createJobConf() throws IOException {
         JobConf conf = HdpBootstrap.hadoopConfig();
 
-        conf.setInputFormat(ESInputFormat.class);
+        conf.setInputFormat(EsInputFormat.class);
         conf.setOutputFormat(PrintStreamOutputFormat.class);
         conf.setOutputKeyClass(Text.class);
         conf.setOutputValueClass(LinkedMapWritable.class);

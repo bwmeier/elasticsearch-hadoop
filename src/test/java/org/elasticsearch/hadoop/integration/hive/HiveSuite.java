@@ -1,22 +1,24 @@
 /*
- * Copyright 2013 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.elasticsearch.hadoop.integration.hive;
 
 import java.io.IOException;
-import java.net.URISyntaxException;
 import java.util.Properties;
 
 import org.apache.hadoop.conf.Configuration;
@@ -24,7 +26,7 @@ import org.apache.hadoop.filecache.DistributedCache;
 import org.apache.hadoop.fs.Path;
 import org.elasticsearch.hadoop.integration.HdfsUtils;
 import org.elasticsearch.hadoop.integration.HdpBootstrap;
-import org.elasticsearch.hadoop.integration.LocalES;
+import org.elasticsearch.hadoop.integration.LocalEs;
 import org.elasticsearch.hadoop.integration.Provisioner;
 import org.elasticsearch.hadoop.util.StringUtils;
 import org.junit.BeforeClass;
@@ -35,8 +37,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
 
 @RunWith(Suite.class)
-@Suite.SuiteClasses({ HiveSaveTest.class, HiveSearchTest.class })
-//@Suite.SuiteClasses({ HiveLoad.class })
+@Suite.SuiteClasses({ HiveSaveTest.class, HiveSaveJsonTest.class, HiveSearchTest.class, HiveSearchJsonTest.class })
+//@Suite.SuiteClasses({ HiveSaveJsonTest.class, HiveSearchJsonTest.class })
 public class HiveSuite {
 
     static HiveInstance server;
@@ -47,7 +49,9 @@ public class HiveSuite {
     static String useDB = "USE test";
 
     static String originalResource;
+    static String originalJsonResource;
     static String hdfsResource;
+    static String hdfsJsonResource;
     static String hdfsEsLib;
     static Configuration hadoopConfig;
 
@@ -56,8 +60,12 @@ public class HiveSuite {
         try {
             originalResource = HiveSuite.class.getClassLoader().getResource("hive-compound.dat").toURI().toString();
             hdfsResource = originalResource;
-        } catch (URISyntaxException ex) {
-            throw new RuntimeException(ex);
+
+            originalJsonResource = HiveSuite.class.getClassLoader().getResource("hive-compound.json").toURI().toString();
+            hdfsJsonResource = originalJsonResource;
+
+        } catch (Exception ex) {
+            throw new RuntimeException("Cannot find resource", ex);
         }
     }
 
@@ -88,7 +96,7 @@ public class HiveSuite {
     };
 
     @ClassRule
-    public static ExternalResource resource = new ChainedExternalResource(new LocalES(), hive);
+    public static ExternalResource resource = new ChainedExternalResource(new LocalEs(), hive);
 
     @BeforeClass
     public static void setup() throws Exception {
@@ -107,12 +115,16 @@ public class HiveSuite {
             hdfsResource = "/eshdp/hive/hive-compund.dat";
             HdfsUtils.copyFromLocal(originalResource, hdfsResource);
             hdfsResource = HdfsUtils.qualify(hdfsResource, hadoopConfig);
+
+            hdfsJsonResource = "/eshdp/hive/hive-compund.json";
+            HdfsUtils.copyFromLocal(originalResource, hdfsJsonResource);
+            hdfsJsonResource = HdfsUtils.qualify(hdfsJsonResource, hadoopConfig);
         }
     }
 
 
     public static String tableProps(String resource, String query, String... params) {
-        StringBuilder sb = new StringBuilder("STORED BY 'org.elasticsearch.hadoop.hive.ESStorageHandler' ");
+        StringBuilder sb = new StringBuilder("STORED BY 'org.elasticsearch.hadoop.hive.EsStorageHandler' ");
 
         sb.append("TBLPROPERTIES('es.resource'='" + resource + "'");
 
@@ -155,6 +167,9 @@ public class HiveSuite {
         if (!isLocal) {
             hdfsResource = "/eshdp/hive/hive-compund.dat";
             HdfsUtils.copyFromLocal(originalResource, hdfsResource);
+
+            hdfsJsonResource = "/eshdp/hive/hive-compund.json";
+            HdfsUtils.copyFromLocal(originalResource, hdfsJsonResource);
         }
 
         String jar = "ADD JAR " + HiveSuite.hdfsEsLib;

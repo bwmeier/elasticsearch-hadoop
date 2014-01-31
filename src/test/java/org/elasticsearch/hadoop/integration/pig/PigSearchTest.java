@@ -1,17 +1,20 @@
 /*
- * Copyright 2013 the original author or authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed to Elasticsearch under one or more contributor
+ * license agreements. See the NOTICE file distributed with
+ * this work for additional information regarding copyright
+ * ownership. Elasticsearch licenses this file to you under
+ * the Apache License, Version 2.0 (the "License"); you may
+ * not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ *    http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
  */
 package org.elasticsearch.hadoop.integration.pig;
 
@@ -36,7 +39,7 @@ public class PigSearchTest {
         return QueryTestParams.params();
     }
 
-    private String query;
+    private final String query;
 
     public PigSearchTest(String query) {
         this.query = query;
@@ -58,8 +61,8 @@ public class PigSearchTest {
     public void testTuple() throws Exception {
         String script =
                 "REGISTER "+ Provisioner.ESHADOOP_TESTING_JAR + ";" +
-                "DEFINE ESStorage org.elasticsearch.hadoop.pig.ESStorage('es.query=" + query + "');" +
-                "A = LOAD 'pig/tupleartists' USING ESStorage();" +
+                "DEFINE EsStorage org.elasticsearch.hadoop.pig.EsStorage('es.query=" + query + "');" +
+                "A = LOAD 'pig/tupleartists' USING EsStorage();" +
                 "X = LIMIT A 3;" +
                 //"DESCRIBE A;";
                 "DUMP X;";
@@ -70,8 +73,8 @@ public class PigSearchTest {
     public void testTupleWithSchema() throws Exception {
         String script =
                 "REGISTER "+ Provisioner.ESHADOOP_TESTING_JAR + ";" +
-                "DEFINE ESStorage org.elasticsearch.hadoop.pig.ESStorage('es.query=" + query + "');" +
-                "A = LOAD 'pig/tupleartists' USING ESStorage() AS (name:chararray);" +
+                "DEFINE EsStorage org.elasticsearch.hadoop.pig.EsStorage('es.query=" + query + "');" +
+                "A = LOAD 'pig/tupleartists' USING EsStorage() AS (name:chararray);" +
                 //"DESCRIBE A;" +
                 "X = LIMIT A 3;" +
                 "DUMP X;";
@@ -82,8 +85,8 @@ public class PigSearchTest {
     public void testBag() throws Exception {
         String script =
                       "REGISTER "+ Provisioner.ESHADOOP_TESTING_JAR + ";" +
-                      "DEFINE ESStorage org.elasticsearch.hadoop.pig.ESStorage('es.query=" + query + "');"
-                      + "A = LOAD 'pig/bagartists' USING ESStorage();"
+                      "DEFINE EsStorage org.elasticsearch.hadoop.pig.EsStorage('es.query=" + query + "');"
+                      + "A = LOAD 'pig/bagartists' USING EsStorage();"
                       + "X = LIMIT A 3;"
                       + "DUMP X;";
         pig.executeScript(script);
@@ -93,8 +96,8 @@ public class PigSearchTest {
     public void testBagWithSchema() throws Exception {
         String script =
                       "REGISTER "+ Provisioner.ESHADOOP_TESTING_JAR + ";" +
-                      "DEFINE ESStorage org.elasticsearch.hadoop.pig.ESStorage('es.query=" + query + "', 'es.mapping.names=data:name');"
-                      + "A = LOAD 'pig/bagartists' USING ESStorage() AS (data: chararray);"
+                      "DEFINE EsStorage org.elasticsearch.hadoop.pig.EsStorage('es.query=" + query + "', 'es.mapping.names=data:name');"
+                      + "A = LOAD 'pig/bagartists' USING EsStorage() AS (data: chararray);"
                       + "X = LIMIT A 3;"
                       + "DUMP X;";
         pig.executeScript(script);
@@ -104,8 +107,8 @@ public class PigSearchTest {
     public void testTimestamp() throws Exception {
         String script =
                       "REGISTER "+ Provisioner.ESHADOOP_TESTING_JAR + ";" +
-                      "DEFINE ESStorage org.elasticsearch.hadoop.pig.ESStorage('es.query=" + query + "');"
-                      + "A = LOAD 'pig/timestamp' USING ESStorage();"
+                      "DEFINE EsStorage org.elasticsearch.hadoop.pig.EsStorage('es.query=" + query + "');"
+                      + "A = LOAD 'pig/timestamp' USING EsStorage();"
                       + "X = LIMIT A 3;"
                       + "DUMP X;";
         pig.executeScript(script);
@@ -115,8 +118,8 @@ public class PigSearchTest {
     public void testFieldAlias() throws Exception {
         String script =
                       "REGISTER "+ Provisioner.ESHADOOP_TESTING_JAR + ";" +
-                      "DEFINE ESStorage org.elasticsearch.hadoop.pig.ESStorage('es.mapping.names=nAme:name, timestamp:@timestamp, uRL:url, picturE:picture', 'es.query=" + query + "');"
-                      + "A = LOAD 'pig/fieldalias' USING ESStorage();"
+                      "DEFINE EsStorage org.elasticsearch.hadoop.pig.EsStorage('es.mapping.names=nAme:name, timestamp:@timestamp, uRL:url, picturE:picture', 'es.query=" + query + "');"
+                      + "A = LOAD 'pig/fieldalias' USING EsStorage();"
                       + "X = LIMIT A 3;"
                       + "DUMP X;";
         pig.executeScript(script);
@@ -126,8 +129,8 @@ public class PigSearchTest {
     public void testMissingIndex() throws Exception {
         String script =
                       "REGISTER "+ Provisioner.ESHADOOP_TESTING_JAR + ";" +
-                      "DEFINE ESStorage org.elasticsearch.hadoop.pig.ESStorage('es.index.read.missing.as.empty=true','es.query=" + query + "');"
-                      + "A = LOAD 'foo/bar' USING ESStorage();"
+                      "DEFINE EsStorage org.elasticsearch.hadoop.pig.EsStorage('es.index.read.missing.as.empty=true','es.query=" + query + "');"
+                      + "A = LOAD 'foo/bar' USING EsStorage();"
                       + "X = LIMIT A 3;"
                       + "DUMP X;";
         pig.executeScript(script);
@@ -137,10 +140,24 @@ public class PigSearchTest {
     public void testParentChild() throws Exception {
         String script =
                       "REGISTER "+ Provisioner.ESHADOOP_TESTING_JAR + ";" +
-                      "DEFINE ESStorage org.elasticsearch.hadoop.pig.ESStorage('es.index.read.missing.as.empty=true','es.query=" + query + "');"
-                      + "A = LOAD 'pig/child' USING ESStorage();"
+                      "DEFINE EsStorage org.elasticsearch.hadoop.pig.EsStorage('es.index.read.missing.as.empty=true','es.query=" + query + "');"
+                      + "A = LOAD 'pig/child' USING EsStorage();"
                       + "X = LIMIT A 3;"
                       + "DUMP X;";
         pig.executeScript(script);
+    }
+
+    @Test
+    public void testNestedObject() throws Exception {
+        String script =
+                "REGISTER "+ Provisioner.ESHADOOP_TESTING_JAR + ";" +
+                "DEFINE EsStorage org.elasticsearch.hadoop.pig.EsStorage('es.query=" + query + "', 'es.mapping.names=links:links.url');"
+                + "A = LOAD 'pig/tupleartists' USING EsStorage() AS (name: chararray, links: chararray);"
+                + "B = FOREACH A GENERATE name, links;"
+                //+ "ILLUSTRATE B;"
+                + "DUMP B;";
+        pig.executeScript(script);
+
+        String tuple = "(Marilyn Manson,http://www.last.fm/music/Marilyn+Manson)";
     }
 }
